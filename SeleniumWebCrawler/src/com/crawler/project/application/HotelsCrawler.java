@@ -32,7 +32,7 @@ import com.crawler.project.model.HotelsVO;
 import com.crawler.project.model.IHotelsDAO;
 import com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException;
 
-public class HotelsCrawler extends Crawler implements CrawlerInterface{
+public class HotelsCrawler extends Crawler implements Crawlable{
 
 	private String baseUrl;
 	private WebElement wElement = null;

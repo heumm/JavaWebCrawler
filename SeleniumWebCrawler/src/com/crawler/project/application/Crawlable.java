@@ -9,7 +9,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 
-public interface CrawlerInterface {
+public interface Crawlable {
 	
 	// chromedriver의 위치 지정 - 시스템변수(환경변수) 설정
     // ★ 웹드라이버 구현 -> 최초의 웹 브라우저 실행을 위한 세팅을 하기 위함 ★ // Crawler 클래스의 Constructor 지정
