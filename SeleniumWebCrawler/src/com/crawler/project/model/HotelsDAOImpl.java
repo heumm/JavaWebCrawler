@@ -33,7 +33,7 @@ public class HotelsDAOImpl implements HotelsDAO{
 	}
 
 	@Override
-	public void insertInfo(HotelsVO info) throws SQLException{
+	public void insertInfo(HotelsVO info) {
 		String sql = "INSERT INTO " + DB_TABLE_NAME_INFO + " "
 				+ "(hotel_name, hotel_grade, hotel_location, hotel_price, hotel_price_discounted) "
 				+ "VALUES (?, ?, ?, ?, ?)";
@@ -56,6 +56,8 @@ public class HotelsDAOImpl implements HotelsDAO{
 				System.out.println("등록 실패!");
 			}
 
+		} catch(SQLException e) {
+			e.printStackTrace();
 		} finally {
 		
 			//	         connection.close();
@@ -135,7 +137,7 @@ public class HotelsDAOImpl implements HotelsDAO{
 			rs = pstmt.executeQuery();
 			
 			if(rs.next()) {
-				System.err.println(hotelName);
+				System.err.print(hotelName);
 				System.out.println(" 의 데이터는 이미 테이블에 존재합니다.");
 				return true;
 			}

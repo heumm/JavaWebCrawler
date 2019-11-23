@@ -42,10 +42,10 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 	private Document doc = null;
 	private List<HotelsReviewVO> vos = new ArrayList<>();
 	private HotelsDAOImpl dao = HotelsDAOImpl.getInstance();
-	
-	
-	
-	
+
+
+
+
 	private WebDriverWait wait = new WebDriverWait(driver, 4);
 
 	public HotelsCrawler() {
@@ -64,25 +64,17 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
-		
-		src = driver.getPageSource();
-		doc = Jsoup.parse(src); //url에 해당되는 페이지 소스를 가져온다.
-		String temp = ""; //스크롤을 더이상 내리지 못할 경우에 종료하도록 임시 String을 저장
-
 
 		int i = 1;
 		List<String> newTab = new ArrayList<>();
 		HotelsVO vo = new HotelsVO();
 		while(true) {
 			try {
-				src = driver.getPageSource();
-
 				try {
 					wElement = driver.findElement(By.xpath("//*[@id=\"listings\"]/ol/li[" + i + "]/article/section/div/h3/a"));
 				} catch(NoSuchElementException nse) {
 					System.err.println("NoSuchElement");
 					jse.executeScript("window.scrollTo(0, document.querySelector('#listings').scrollHeight)");
-//					temp = driver.getPageSource();
 					try {
 						wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.cssSelector("#listings-loading > span.listings-loading-circle")));
 						wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector("#listings-loading > span.listings-loading-circle")));
@@ -92,55 +84,44 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 							break;
 						}
 					}
-//					wait.until(driver -> jse.executeScript("return document.readyState").equals("complete"));
-//					if(temp.equals(src)) {
-//						nse.printStackTrace();
-//						System.out.println("완료. 종료합니다.");
-//						try {
-//							dao.getConnection().close();
-//							dao.getPstmt().close();
-//						} catch(SQLException sqle) {
-//
-//						}
-//						break;
-//						//							driver.quit();
-//						//							System.exit(0);
-//					}
 					i++;
 					continue;
 				}
 				System.out.println("링크 : " + wElement.getText().split("\\(")[0].trim());
+
+
 				if(dao.isDuplicateKey(HotelsDAO.DB_TABLE_NAME_INFO, wElement.getText().split("\\(")[0].trim())) {
 					i++;
 					continue;
 				}
-				
-				
 				wElement.click();   // 호텔 클릭
-
 				newTab.addAll(driver.getWindowHandles());
+
 				driver.switchTo().window(newTab.get(1));
+
+				//아래 한 줄은 호텔명을 검색하게 해서 나오지 않는다면 다른 창이 띄워져있을 가능성이 높기 때문에 바로 예외 처리 구문으로 넘겨줍니다.
+				try {
+					driver.findElement(By.cssSelector("#property-header > div.property-description > div.vcard > h1"));
+				} catch(NoSuchElementException nse) {
+					if(!newTab.isEmpty()) {   //열려있는 탭이 있다면(다른 창이 띄워져서 예외가 발생했다면) 창을 닫아주는 조건문
+						//						e.printStackTrace();
+						System.out.println("금액이 없거나 다른 창이 띄워졌습니다.");
+						driver.close();
+						driver.switchTo().window(newTab.get(0));
+						newTab.clear();
+						for (String string : newTab) {
+							System.out.println("탭:" + string);
+						}
+
+					}
+				}
 				src = driver.getPageSource();
 				doc = Jsoup.parse(src);
-
-
-				//            -------------------------------                  
-				//system.out.println(src); // 현재 html 소스 출력
-				//아래 한 줄은 호텔명을 검색하게 해서 나오지 않는다면 다른 창이 띄워져있을 가능성이 높기 때문에 바로 예외 처리 구문으로 넘겨줍니다.
-				driver.findElement(By.cssSelector("#property-header > div.property-description > div.vcard > h1"));
-
-				//            -------------------------------   
-
 				Elements hotelName = doc.select("#property-header > div > div.vcard > h1");
-				
-				//            printElements("호텔명 : ", hotelName);
+
 				System.out.println("호텔명 : " + hotelName.text());
-				//            star-rating-text-strong. 호텔등급4,5성에만 해당되기때문에 제외시킴
 				vo.setHotelName(hotelName.text());
 				Elements hotelGrade = doc.select("#property-header > div > div.vcard > span.star-rating-text.widget-star-rating-overlay.widget-tooltip.widget-tooltip-responsive.widget-tooltip-ignore-touch");
-				
-				
-				
 				vo.setHotelGrade(hotelGrade.text().substring(0, hotelGrade.text().indexOf("급")));
 				System.out.println("호텔 등급 : " + hotelGrade.text().substring(0, hotelGrade.text().indexOf("급")));
 
@@ -148,17 +129,13 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 				vo.setHotelLocation(hotelLocation.text());
 				printElements("호텔 위치 : ", hotelLocation);
 
-				//            -------------------------------               
-				// 요금(숫자)과 함께 -> 줄이 그어진 요금은 이 숙박 시설에서 결정하여 제공하는 표준 요금입니다. 라고 출력되기때문에 if문으로 변경함
 
 				Elements hotelPrices = doc.select("#book-info-container > div:nth-child(1) > div > div.pricing > div > del");//일반 요금을 브라우저에서 스크랩
 				String strHotelPrices = "";
-
+				// 요금(숫자)과 함께 -> 줄이 그어진 요금은 이 숙박 시설에서 결정하여 제공하는 표준 요금입니다. 라고 출력되기때문에 if문으로 변경함
 				if(hotelPrices.text().contains("줄이 그어진 요금은 이 숙박 시설에서 결정하여 제공하는 표준 요금입니다.")) {//객실 요금이 할인이 된 경우
 
 					strHotelPrices = hotelPrices.text();
-					//               vo.setHotelPrice(Integer.parseInt(hotelPrices.text().split(" 줄이 그어진 요금은 이 숙박 시설에서 결정하여 제공하는 표준 요금입니다.")[0].substring(hotelPrices.text().indexOf("₩")+1, hotelPrices.text().indexOf(" ")).replace(",", "").replace(" ", "")));//vo객체 객실요금 설정
-					//               System.out.println("표준 요금 : " + hotelPrices.text().split(" 줄이 그어진 요금은 이 숙박 시설에서 결정하여 제공하는 표준 요금입니다.")[0].substring(hotelPrices.text().indexOf("₩")+1, hotelPrices.text().indexOf(" ")).replace(",", "").replace(" ", ""));//객실요금 콘솔출력
 					vo.setHotelPrice(strHotelPrices.split(" 줄이 그어진 요금은 이 숙박 시설에서 결정하여 제공하는 표준 요금입니다.")[0].trim());//vo객체 객실요금 설정
 					System.out.println("표준 요금 : " + strHotelPrices.split(" 줄이 그어진 요금은 이 숙박 시설에서 결정하여 제공하는 표준 요금입니다.")[0].trim());//객실요금 콘솔출력
 					Elements hotelPricesDiscounted = doc.select("#book-info-container > div:nth-child(1) > div > div.pricing > div > span.current-price.has-old-price");//할인된 요금을 브라우저에서 스크랩
@@ -177,50 +154,30 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 					vo.setHotelPriceDiscounted(strHotelPrices.trim());
 					//               vo.setHotelPriceDiscounted(Integer.parseInt(hotelPrices.text().split(" 줄이 그어진 요금은 이 숙박 시설에서 결정하여 제공하는 표준 요금입니다.")[0].replace("₩", "").replace(",", ""))); 
 				}
-				if(!dao.isDuplicateKey(HotelsDAO.DB_TABLE_NAME_INFO, vo.getHotelName())) {
-					dao.insertInfo(vo);//여기서 예외발생
-				}
 
+				if(!dao.isDuplicateKey(HotelsDAO.DB_TABLE_NAME_INFO, vo.getHotelName())) {
+					dao.insertInfo(vo);
+				}
 				driver.close();
 				driver.switchTo().window(newTab.get(0));
 				newTab.removeAll(newTab);
-			} catch(NoSuchElementException e) {
-				
-				if(!newTab.isEmpty()) {   //열려있는 탭이 있다면(다른 창이 띄워져서 예외가 발생했다면) 창을 닫아주는 조건문
-//					e.printStackTrace();
-					System.out.println("금액이 없거나 다른 창이 띄워졌습니다.");
-					driver.close();
-					driver.switchTo().window(newTab.get(0));
-					newTab.clear();
-
-				} else {
-					
-				}
-			} 
-//			catch(SQLException sqle) {
-//				if(sqle instanceof MySQLIntegrityConstraintViolationException) {
-//					System.err.println("Duplicate PRIMARY KEY ");
-//				}
-//				sqle.printStackTrace();
-//				driver.close();
-//				driver.switchTo().window(newTab.get(0));
-//				newTab.removeAll(newTab);
-//			} 
-			catch(Exception e) {
-				e.printStackTrace();  
+				i++;
+			}catch(Exception e) {
+				e.printStackTrace();
+				i++;
+				continue;
 			}
-			i++;
-		}
+		} 
 	}   //crawlInfo() method end
 
-	
-	
-	
+
+
+
 	@Override
 	public void crawlReview() {
 		try {
 			if(dao.getConnection().isClosed()) dao.setConnection(DriverManager.getConnection(HotelsDAO.DB_URL, HotelsDAO.DB_USER, HotelsDAO.DB_PW));
-			
+
 			scrollDownToCheck("#result-info-container > div"); // 19.10.19 update
 
 			src = driver.getPageSource();   //크롬이 현재 열고 있는 페이지의 소스를 src 문자열에 저장
@@ -230,9 +187,9 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 			printElements("전체 호텔 수", totalHotels);
 			Elements element = doc.select("div.reviews-box.resp-module").select("a");
 
-			
+
 			for (Element e : element) {	//리뷰페이지url 순차적으로 접근
-				
+
 
 				url = "https://kr.hotels.com" + e.attr("href");
 				driver.get(url);
@@ -244,7 +201,7 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 						+ "div.brand-reviews-content.clearfix > div.brand-reviews-filter > div > p > span");
 				System.out.println("전체 리뷰 수 : " + totalRev);
 				//            int totalRevInt = Integer.parseInt(totalRev.text().replace(",", ""));
-				
+
 
 				Elements nameHotels = doc.select("h2.widget-overlay-hd > span");
 				printElements("nameHotels = ", nameHotels);//필수
@@ -252,7 +209,7 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 				if(dao.isDuplicateKey(HotelsDAO.DB_TABLE_NAME_INFO, nameHotels.text()) || !(dao.isInfoExist(nameHotels.text()))) { continue; }
 				// 인포 존재 여부 체크. 조건식에 추가해야함. 
 				// 호텔명이 인포 테이블에 존재하지 않다면 데이터가 들어가지 않기 때문에 검사해야한다.
-				
+
 				int totalRevInt = 0;
 				//다음 버튼이 존재하지 않을 때 까지 다음버튼을 누르고 정보를 가져온다.
 				while(true) {	//리뷰 페이지 넘기기 위한 반복
@@ -263,7 +220,7 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 						driver.navigate().refresh();
 						continue;
 					}
-					
+
 					src = driver.getPageSource();
 					doc = Jsoup.parse(src);
 
@@ -287,13 +244,13 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 								vo.setReviewContent(revContent.text());   //vo.setcontent
 								vo.setReviewDate(dateYY+dateMM+dateDD);   //vo.setdate
 								vos.add(vo);
-//								System.out.println(vo);
+								//								System.out.println(vo);
 							}
 
 							System.out.println("nosuchelement 마지막 페이지");
-//							for (HotelsReviewVO vo : vos) {
-//								System.out.println(vo);
-//							}
+							//							for (HotelsReviewVO vo : vos) {
+							//								System.out.println(vo);
+							//							}
 							dao.insertReview(vos);	//DB삽입
 							System.out.println(totalRevInt + "개의 리뷰");
 							vos.clear();	//리스트 클리어
@@ -320,7 +277,7 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 						vo.setReviewContent(revContent.text());   //vo.setcontent
 						vo.setReviewDate(dateYY+dateMM+dateDD);   //vo.setdate
 						vos.add(vo);
-//						System.out.println(vo);
+						//						System.out.println(vo);
 					}
 					try {
 
@@ -346,12 +303,12 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 		} catch (Exception e) {
 			e.printStackTrace();  // 자주 발생하지 않는 exception이기 때문에 출력하여 원인을 찾아내기 위함(19.10.21주석 해제)
 		} finally {
-//			driver.quit();
+			//			driver.quit();
 			try {
 				dao.getConnection().close();
 				dao.getPstmt().close();
 			} catch(SQLException sqle) {
-					
+
 			}
 		}
 
@@ -368,7 +325,7 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 		if(input.equals("")) {
 			driver.manage().timeouts().implicitlyWait(2000, TimeUnit.MILLISECONDS);
 			driver.findElement(By.xpath("//*[@id=\"qf-0q-destination\"]")).sendKeys("한국");
-//			rWait();
+			//			rWait();
 			src = driver.getPageSource();
 			wElement = driver.findElement(By.cssSelector("body > div.widget-autosuggest.widget-autosuggest-visible"));
 			wElements = wElement.findElements(By.cssSelector("tr"));
@@ -381,9 +338,9 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 			}
 		} else {
 			driver.findElement(By.xpath("//*[@id=\"qf-0q-destination\"]")).sendKeys(input);   //지역에 서울, 한국을 입력
-//			rWait();
+			//			rWait();
 			driver.findElement(By.cssSelector("#hds-marquee > div.row.centered-wrapper.w-full.po-r > div.container-queryform.col-12.col-l4.mv-bird > div > form > div.widget-query-group.widget-query-ft > button")).submit();   //검색버튼 누르고 다음페이지 요청
-//			rWait();
+			//			rWait();
 		}
 		driver.manage().timeouts().implicitlyWait(600, TimeUnit.MILLISECONDS);
 	}
@@ -412,8 +369,8 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 	}
 
 
-	
-	
+
+
 
 }   //class end
 

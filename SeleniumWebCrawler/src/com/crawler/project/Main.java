@@ -46,7 +46,8 @@ public class Main extends Application {
 		return primaryStage;
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
+		Runtime.getRuntime().exec("taskkill /F /IM chromedriver77.exe /T");
 		launch(args);
 	}
 }
