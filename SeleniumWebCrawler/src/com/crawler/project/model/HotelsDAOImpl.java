@@ -137,7 +137,7 @@ public class HotelsDAOImpl implements HotelsDAO{
 			rs = pstmt.executeQuery();
 			
 			if(rs.next()) {
-				System.err.print(hotelName);
+				System.out.print(hotelName);
 				System.out.println(" 의 데이터는 이미 테이블에 존재합니다.");
 				return true;
 			}
@@ -166,7 +166,7 @@ public class HotelsDAOImpl implements HotelsDAO{
 			if(rs.next()) {
 				return true;
 			} else {
-				System.err.print(hotelName);
+				System.out.print(hotelName);
 				System.out.println(" 의 정보가 존재하지 않아 넘어갑니다.");
 			}
 		} catch(SQLException e){

@@ -73,14 +73,14 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 				try {
 					wElement = driver.findElement(By.xpath("//*[@id=\"listings\"]/ol/li[" + i + "]/article/section/div/h3/a"));
 				} catch(NoSuchElementException nse) {
-					System.err.println("NoSuchElement");
+					System.out.println("...");
 					jse.executeScript("window.scrollTo(0, document.querySelector('#listings').scrollHeight)");
 					try {
 						wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.cssSelector("#listings-loading > span.listings-loading-circle")));
 						wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector("#listings-loading > span.listings-loading-circle")));
 					} catch(TimeoutException te) {
 						if(wElement.equals(driver.findElement(By.xpath("//*[@id=\"listings\"]/ol/li[last()-3]/article/section/div/h3/a")))) { 
-							System.out.println("끝");
+							System.out.println("완료");
 							break;
 						}
 					}
@@ -206,7 +206,7 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 				Elements nameHotels = doc.select("h2.widget-overlay-hd > span");
 				printElements("nameHotels = ", nameHotels);//필수
 				// 리뷰테이블에 이미 해당 호텔데이터가 존재하거나 인포 테이블에 존재하지 않거나
-				if(dao.isDuplicateKey(HotelsDAO.DB_TABLE_NAME_INFO, nameHotels.text()) || !(dao.isInfoExist(nameHotels.text()))) { continue; }
+				if(dao.isDuplicateKey(HotelsDAO.DB_TABLE_NAME_REVIEW, nameHotels.text()) || !(dao.isInfoExist(nameHotels.text()))) { continue; }
 				// 인포 존재 여부 체크. 조건식에 추가해야함. 
 				// 호텔명이 인포 테이블에 존재하지 않다면 데이터가 들어가지 않기 때문에 검사해야한다.
 
