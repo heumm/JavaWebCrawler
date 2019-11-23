@@ -4,7 +4,7 @@ CREATE USER 'crawleruser'@'localhost' IDENTIFIED BY 'crawler';
 
 
 create table com_hotels(
-    hotel_name varchar(50) NOT NULL,  
+    hotel_name varchar(200) NOT NULL,  
 	hotel_grade varchar(16) NOT NULL,    
 	hotel_location varchar(50) ,  
 	hotel_price varchar(50) ,  
@@ -13,7 +13,7 @@ create table com_hotels(
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
     
 create table com_hotels_review(
-	hotel_name varchar(50) NOT NULL, 
+	hotel_name varchar(200) NOT NULL, 
     review_num int unsigned NOT NULL, 
     review_rate double, 
     review_content varchar(3000), 

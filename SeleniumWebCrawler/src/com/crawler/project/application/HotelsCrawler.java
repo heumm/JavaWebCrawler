@@ -26,10 +26,10 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import com.crawler.project.model.HotelsDAO;
+import com.crawler.project.model.HotelsDAOImpl;
 import com.crawler.project.model.HotelsReviewVO;
 import com.crawler.project.model.HotelsVO;
-import com.crawler.project.model.IHotelsDAO;
+import com.crawler.project.model.HotelsDAO;
 import com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException;
 
 public class HotelsCrawler extends Crawler implements Crawlable{
@@ -41,12 +41,12 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 	private String src = "";
 	private Document doc = null;
 	private List<HotelsReviewVO> vos = new ArrayList<>();
-	private HotelsDAO dao = HotelsDAO.getInstance();
+	private HotelsDAOImpl dao = HotelsDAOImpl.getInstance();
 	
 	
 	
 	
-	private WebDriverWait wait = new WebDriverWait(driver, 10);
+	private WebDriverWait wait = new WebDriverWait(driver, 4);
 
 	public HotelsCrawler() {
 		super();
@@ -54,11 +54,13 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 		driver.get(baseUrl);   //초기페이지 접속.
 	}
 
-
+	/**
+	 * 
+	 */
 	@Override
 	public void crawlInfo() {
 		try {
-			if(dao.getConnection().isClosed()) dao.setConnection(DriverManager.getConnection(IHotelsDAO.DB_URL, IHotelsDAO.DB_USER, IHotelsDAO.DB_PW));
+			if(dao.getConnection().isClosed()) dao.setConnection(DriverManager.getConnection(HotelsDAO.DB_URL, HotelsDAO.DB_USER, HotelsDAO.DB_PW));
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -75,16 +77,48 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 			try {
 				src = driver.getPageSource();
 
-				//            System.out.println(i);
-//				rWait();
-				wElement = driver.findElement(By.xpath("//*[@id=\"listings\"]/ol/li[" + i + "]/article/section/div/h3/a"));
-				//            System.out.println(wElement);
+				try {
+					wElement = driver.findElement(By.xpath("//*[@id=\"listings\"]/ol/li[" + i + "]/article/section/div/h3/a"));
+				} catch(NoSuchElementException nse) {
+					System.err.println("NoSuchElement");
+					jse.executeScript("window.scrollTo(0, document.querySelector('#listings').scrollHeight)");
+//					temp = driver.getPageSource();
+					try {
+						wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.cssSelector("#listings-loading > span.listings-loading-circle")));
+						wait.until(ExpectedConditions.invisibilityOfElementLocated(By.cssSelector("#listings-loading > span.listings-loading-circle")));
+					} catch(TimeoutException te) {
+						if(wElement.equals(driver.findElement(By.xpath("//*[@id=\"listings\"]/ol/li[last()-3]/article/section/div/h3/a")))) { 
+							System.out.println("끝");
+							break;
+						}
+					}
+//					wait.until(driver -> jse.executeScript("return document.readyState").equals("complete"));
+//					if(temp.equals(src)) {
+//						nse.printStackTrace();
+//						System.out.println("완료. 종료합니다.");
+//						try {
+//							dao.getConnection().close();
+//							dao.getPstmt().close();
+//						} catch(SQLException sqle) {
+//
+//						}
+//						break;
+//						//							driver.quit();
+//						//							System.exit(0);
+//					}
+					i++;
+					continue;
+				}
+				System.out.println("링크 : " + wElement.getText().split("\\(")[0].trim());
+				if(dao.isDuplicateKey(HotelsDAO.DB_TABLE_NAME_INFO, wElement.getText().split("\\(")[0].trim())) {
+					i++;
+					continue;
+				}
+				
+				
 				wElement.click();   // 호텔 클릭
 
-
-				
 				newTab.addAll(driver.getWindowHandles());
-//				rWait();
 				driver.switchTo().window(newTab.get(1));
 				src = driver.getPageSource();
 				doc = Jsoup.parse(src);
@@ -143,60 +177,39 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 					vo.setHotelPriceDiscounted(strHotelPrices.trim());
 					//               vo.setHotelPriceDiscounted(Integer.parseInt(hotelPrices.text().split(" 줄이 그어진 요금은 이 숙박 시설에서 결정하여 제공하는 표준 요금입니다.")[0].replace("₩", "").replace(",", ""))); 
 				}
-
-				dao.insertInfo(vo);//여기서 예외발생
+				if(!dao.isDuplicateKey(HotelsDAO.DB_TABLE_NAME_INFO, vo.getHotelName())) {
+					dao.insertInfo(vo);//여기서 예외발생
+				}
 
 				driver.close();
-//				rWait();
 				driver.switchTo().window(newTab.get(0));
 				newTab.removeAll(newTab);
 			} catch(NoSuchElementException e) {
+				
 				if(!newTab.isEmpty()) {   //열려있는 탭이 있다면(다른 창이 띄워져서 예외가 발생했다면) 창을 닫아주는 조건문
 //					e.printStackTrace();
-					System.err.println("금액이 없거나 다른 창이 띄워졌습니다.");
+					System.out.println("금액이 없거나 다른 창이 띄워졌습니다.");
 					driver.close();
 					driver.switchTo().window(newTab.get(0));
-					newTab.removeAll(newTab);
+					newTab.clear();
 
-					//               try {
-					//                  dao.insertInfo(vo);
-					//               } catch (SQLException e1) {
-					//                  e1.printStackTrace();
-					//               }
-
-				} else if(temp.equals(src)) {
-					System.err.println("완료. 종료합니다.");
-					try {
-						dao.getConnection().close();
-						dao.getPstmt().close();
-					} catch(SQLException sqle) {
-							
-					}
-					break;
-//					driver.quit();
-//					System.exit(0);
 				} else {
-					System.err.println("NoSuchElement");
-					jse.executeScript("window.scrollTo(0, document.querySelector('#listings').scrollHeight)");
-					temp = driver.getPageSource();
+					
 				}
-			}
-			//         catch(InterruptedException ie) {
-			//            // ie.printStackTrace(); -> printStackTrace를 출력하지 않음(주석처리) 콘솔용량부족현상
-			//         } 
-			catch(SQLException sqle) {
-				if(sqle instanceof MySQLIntegrityConstraintViolationException) {
-					System.err.println("Duplicate PRIMARY KEY ");
-				}
-				sqle.printStackTrace();
-				driver.close();
-				driver.switchTo().window(newTab.get(0));
-				newTab.removeAll(newTab);
-			} catch(Exception e) {
-				//e.printStackTrace();  -> printStackTrace를 출력하지 않음(주석처리) 콘솔용량부족현상
+			} 
+//			catch(SQLException sqle) {
+//				if(sqle instanceof MySQLIntegrityConstraintViolationException) {
+//					System.err.println("Duplicate PRIMARY KEY ");
+//				}
+//				sqle.printStackTrace();
+//				driver.close();
+//				driver.switchTo().window(newTab.get(0));
+//				newTab.removeAll(newTab);
+//			} 
+			catch(Exception e) {
+				e.printStackTrace();  
 			}
 			i++;
-			//         System.out.println(i);
 		}
 	}   //crawlInfo() method end
 
@@ -206,7 +219,7 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 	@Override
 	public void crawlReview() {
 		try {
-			if(dao.getConnection().isClosed()) dao.setConnection(DriverManager.getConnection(IHotelsDAO.DB_URL, IHotelsDAO.DB_USER, IHotelsDAO.DB_PW));
+			if(dao.getConnection().isClosed()) dao.setConnection(DriverManager.getConnection(HotelsDAO.DB_URL, HotelsDAO.DB_USER, HotelsDAO.DB_PW));
 			
 			scrollDownToCheck("#result-info-container > div"); // 19.10.19 update
 
@@ -236,7 +249,7 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 				Elements nameHotels = doc.select("h2.widget-overlay-hd > span");
 				printElements("nameHotels = ", nameHotels);//필수
 				// 리뷰테이블에 이미 해당 호텔데이터가 존재하거나 인포 테이블에 존재하지 않거나
-				if(dao.isReviewDuplicated(nameHotels.text()) || !(dao.isInfoExist(nameHotels.text()))) { continue; }
+				if(dao.isDuplicateKey(HotelsDAO.DB_TABLE_NAME_INFO, nameHotels.text()) || !(dao.isInfoExist(nameHotels.text()))) { continue; }
 				// 인포 존재 여부 체크. 조건식에 추가해야함. 
 				// 호텔명이 인포 테이블에 존재하지 않다면 데이터가 들어가지 않기 때문에 검사해야한다.
 				
