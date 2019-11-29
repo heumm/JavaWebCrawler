@@ -29,6 +29,12 @@ public abstract class Crawler{
 //        driver.manage().timeouts().setScriptTimeout(3, TimeUnit.SECONDS);
 	}
 	
+    public void printElements(Elements es) {
+    	for (Element e : es) {
+			System.out.println(e.text());
+		}
+    }
+    
 	// Elements를 모두 출력하는 메소드
 	public void printElements(String label, Elements es) {
 		for (Element e : es) {

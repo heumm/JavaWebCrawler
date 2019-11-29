@@ -248,9 +248,6 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 							}
 
 							System.out.println("nosuchelement 마지막 페이지");
-							//							for (HotelsReviewVO vo : vos) {
-							//								System.out.println(vo);
-							//							}
 							dao.insertReview(vos);	//DB삽입
 							System.out.println(totalRevInt + "개의 리뷰");
 							vos.clear();	//리스트 클리어
@@ -325,7 +322,6 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 		if(input.equals("")) {
 			driver.manage().timeouts().implicitlyWait(2000, TimeUnit.MILLISECONDS);
 			driver.findElement(By.xpath("//*[@id=\"qf-0q-destination\"]")).sendKeys("한국");
-			//			rWait();
 			src = driver.getPageSource();
 			wElement = driver.findElement(By.cssSelector("body > div.widget-autosuggest.widget-autosuggest-visible"));
 			wElements = wElement.findElements(By.cssSelector("tr"));
@@ -338,9 +334,7 @@ public class HotelsCrawler extends Crawler implements Crawlable{
 			}
 		} else {
 			driver.findElement(By.xpath("//*[@id=\"qf-0q-destination\"]")).sendKeys(input);   //지역에 서울, 한국을 입력
-			//			rWait();
 			driver.findElement(By.cssSelector("#hds-marquee > div.row.centered-wrapper.w-full.po-r > div.container-queryform.col-12.col-l4.mv-bird > div > form > div.widget-query-group.widget-query-ft > button")).submit();   //검색버튼 누르고 다음페이지 요청
-			//			rWait();
 		}
 		driver.manage().timeouts().implicitlyWait(600, TimeUnit.MILLISECONDS);
 	}
