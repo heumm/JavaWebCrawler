@@ -15,7 +15,7 @@ public interface Crawlable {
     // ★ 웹드라이버 구현 -> 최초의 웹 브라우저 실행을 위한 세팅을 하기 위함 ★ // Crawler 클래스의 Constructor 지정
 	// 해당 위치에서  System.setProperty(WEB_DRIVER_ID, WEB_DRIVER_PATH); 선언
 	public static final String WEB_DRIVER_ID = "webdriver.chrome.driver";
-    public static final String WEB_DRIVER_PATH = "chromedriver/chromedriver77.exe";
+    public static final String WEB_DRIVER_PATH = "chromedriver/chromedriver79.exe";
 	
     
     // 페이지 크롤링 메소드 (리뷰 선언)
